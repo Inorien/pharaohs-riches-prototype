@@ -1,5 +1,6 @@
 #include <chrono>
 #include <iostream>
+#include <array>
 #include <vector>
 
 // Slots prototype:
@@ -35,18 +36,22 @@ public:
 			w3 = standard_wheel[rand()];
 		}
 
+		print_state({w1, w2, w3}); //debug
+
 		auto winnings{ check_win(w1, w2, w3) };
 
 		if (bonus_steps == 10) {
 			//bonus mode, give some free spins
 			bonus_mode = true;
+			bonus_steps = 0;
+			remaining_bonus = free_spins; //debug
 
 			for (int i = 0; i < free_spins; i++) {
+				remaining_bonus--;
 				winnings += spin();
 			}
 
 			bonus_mode = false;
-			bonus_steps = 0;
 		}
 
 		return winnings;
@@ -56,16 +61,25 @@ public:
 		//todo: bonus_mode-specific logic
 		// all wheels same value
 		if ((w1 == w2) && (w2 == w3)) {
-			std::cout << "Win!" << w1 << ' ' << w2 << ' ' << w3 << std::endl;
+			//std::cout << "Win!";
 			return 100;
 		}
-		//if (w1 == 'X' || w2 == 'X' || w3 == 'X') {
-		//	std::cout << "BONUS STEP\n";
-		//	bonus_steps++;
-		//}
+		if (w1 == 'X' || w2 == 'X' || w3 == 'X') {
+			bonus_steps++;
+		}
 		return 0.0;
 	}
-	
+
+	void print_state(std::array<char, 3> wheels) const {
+		std::cout << wheels[0] << ' ' << wheels[1] << ' ' << wheels[2] << ' ';
+		if (bonus_mode) {
+			std::cout << "BONUS MODE! " << remaining_bonus << " free spins remain. ";
+		} else {
+			std::cout << "Bonus step: " << bonus_steps << ' ';
+		}
+		std::cout << std::endl;
+	}
+
 private:
 	// X is bonus step symbol
 	std::vector<char> standard_wheel{ 'A', 'B', 'C', 'D', 'E', 'X' };
@@ -74,22 +88,29 @@ private:
 	unsigned bonus_steps{ 0 };
 	bool bonus_mode{false};
 	unsigned char free_spins{ 10 };
+	unsigned  remaining_bonus{ 0 }; //debug
 };
 
 
 int main() {
 
+	size_t tests{ 10000 };
+	std::cout << "Press Enter to spin, c to exit. Max " << tests << " spins\n";
+
 	Slots slots;
 
 	double totalWin{ 0.0 };
-	size_t tests{ 10000 };
-	for (int i = 0; i < tests; i++) {
+	int i = 0;
+	while (int ch = getchar()) {
+		if (ch == 'c' || i > tests) break;
+
 		const auto result{ slots.spin() };
 		totalWin += result;
+		i++;
 	}
 
-	std::cout << "Total win: " << totalWin << std::endl;
-	std::cout << "Average payout: " << totalWin * 100 / static_cast<double>(tests) << '%' << std::endl;
+	std::cout << "Total win: " << totalWin << " (played " << i << " rounds)" << std::endl;
+	std::cout << "Average payout: " << totalWin * 100 / static_cast<double>(i) << '%' << std::endl;
 
 	return 0;
 }
